@@ -1,82 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scroll Image Sequence</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <div class="loader">
-        <div class="loader-text">PREPARING EXPERIENCE... <span id="progress">0%</span></div>
-    </div>
-
-    <nav class="navbar">
-        <div class="nav-logo">PORTFOLIO</div>
-        <ul class="nav-links">
-            <li><a href="#about">About Me</a></li>
-            <li><a href="#journey">Journey</a></li>
-            <li><a href="#projects">Projects</a></li>
-            <li><a href="#tech">Tech Stack</a></li>
-            <li><a href="#contact">Contact</a></li>
-        </ul>
-    </nav>
-
-    <main>
-        <div class="canvas-container">
-            <canvas id="hero-canvas"></canvas>
-        </div>
-
-        <section class="hero" id="home">
-            <div class="hero-content">
-                <h1>The Future of Motion</h1>
-                <p>Scroll to explore the journey</p>
-            </div>
-        </section>
-
-        <section class="content-section" id="about">
-            <div class="glass-card">
-                <h2>About Me</h2>
-                <p>I am a creative developer focused on high-performance, immersive web experiences. This portfolio showcases the intersection of technology and design.</p>
-            </div>
-        </section>
-
-        <section class="content-section" id="journey">
-            <div class="glass-card">
-                <h2>Journey</h2>
-                <p>From lines of code to seamless animations, my journey has been driven by a passion for perfection and fluid user interfaces.</p>
-            </div>
-        </section>
-
-        <section class="content-section" id="projects">
-            <div class="glass-card">
-                <h2>Projects</h2>
-                <p>Exploring the boundaries of what's possible on the web, one frame at a time.</p>
-            </div>
-        </section>
-
-        <section class="content-section" id="tech">
-            <div class="glass-card">
-                <h2>Technology Stack</h2>
-                <p>GSAP, ScrollTrigger, Three.js, Canvas API, and modern frontend architectures.</p>
-            </div>
-        </section>
-
-        <section class="content-section" id="contact">
-            <div class="glass-card">
-                <h2>Contact Me</h2>
-                <p>Let's build something extraordinary together.</p>
-                <a href="mailto:sidxohal9049@gmail.com" class="contact-btn">Get In Touch</a>
-            </div>
-        </section>
-    </main>
-
-    <footer class="footer">
-        <p>&copy; 2026 Siddharth Ohal. All rights reserved.</p>
-    </footer>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
-    <script src="script.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Siddharth Ohal | Portfolio</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
 </html>
