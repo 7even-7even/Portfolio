@@ -1,6 +1,3 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import './App.css';
 
 import React, { useEffect, useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';

@@ -22,10 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+.npmrc
 
-# OS metadata
-.DS_Store
-Thumbs.db
-
-# Build files
-public/frames/
+backup/
+.env
+redoxchess-engine/
