@@ -32,22 +32,15 @@ const HeroSection = () => (
     </div>
     
     <div className="hero-content">
-      <motion.h1 
-        className="hero-title-large"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 0.15 }}
-        transition={{ duration: 2 }}
-      >
-        7EVEN
-      </motion.h1>
-      
       <motion.div
-        initial={{ y: 50, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
+        className="hero-text-container"
+        initial={{ y: 80, opacity: 0 }}
+        animate={{ y: 40, opacity: 1 }}
         transition={{ duration: 1, delay: 0.5 }}
+        style={{ marginTop: '150px' }}
       >
-        <h2 className="serif" style={{ fontSize: '4rem', letterSpacing: '-2px' }}>Siddharth Ohal</h2>
-        <p style={{ letterSpacing: '8px', textTransform: 'uppercase', color: 'var(--accent-light-purple)', marginTop: '10px' }}>
+        <h2 className="serif" style={{ fontSize: '4.5rem', letterSpacing: '-2px', marginBottom: '5px' }}>Siddharth Ohal</h2>
+        <p style={{ letterSpacing: '8px', textTransform: 'uppercase', color: 'var(--accent-light-purple)', fontSize: '0.9rem', fontWeight: '600' }}>
           Creative Developer & Designer
         </p>
       </motion.div>
