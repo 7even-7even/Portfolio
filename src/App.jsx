@@ -2,51 +2,106 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import './App.css';
 
-const Navbar = () => (
-  <nav className="navbar">
-    <div className="nav-logo">7EVEN</div>
-    <ul className="nav-links">
-      <li><a href="#about">About</a></li>
-      <li><a href="#journey">Journey</a></li>
-      <li><a href="#projects">Work</a></li>
-      <li><a href="#contact" className="btn-contact">Contact Me</a></li>
-    </ul>
-  </nav>
-);
+import React, { useEffect, useRef } from 'react';
+import { motion, useScroll, useTransform } from 'framer-motion';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import './App.css';
 
-const HeroSection = () => (
-  <section className="hero-section">
-    <div className="hero-bg-container">
-      {/* Assuming the image provided is placed in public/hero.png */}
-      <div 
-        className="hero-image" 
-        style={{ 
-          width: '100%', 
-          height: '100%', 
-          backgroundImage: 'url(/hero.png)', 
-          backgroundSize: 'cover', 
-          backgroundPosition: 'center' 
-        }} 
-      />
-      <div className="hero-overlay" />
+gsap.registerPlugin(ScrollTrigger);
+
+const Navbar = () => {
+  const { scrollYProgress } = useScroll();
+  const navX = useTransform(scrollYProgress, [0, 0.1], ["0%", "-35%"]);
+  
+  return (
+    <motion.nav 
+      className="navbar"
+      style={{ x: navX }}
+    >
+      <div className="nav-logo">7EVEN</div>
+      <ul className="nav-links">
+        <li><a href="#about">About</a></li>
+        <li><a href="#journey">Journey</a></li>
+        <li><a href="#projects">Work</a></li>
+        <li><a href="#contact" className="btn-contact">Contact Me</a></li>
+      </ul>
+    </motion.nav>
+  );
+};
+
+const HeroAboutSection = () => {
+  const containerRef = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start start", "end end"]
+  });
+
+  // Move image to the right on scroll
+  const imageX = useTransform(scrollYProgress, [0, 0.5], ["0%", "25%"]);
+  const imageScale = useTransform(scrollYProgress, [0, 0.5], [1, 1.1]);
+  
+  // Content fades
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
+  const aboutOpacity = useTransform(scrollYProgress, [0.3, 0.5], [0, 1]);
+  const aboutY = useTransform(scrollYProgress, [0.3, 0.5], [50, 0]);
+
+  return (
+    <div ref={containerRef} className="hero-about-container">
+      {/* Persistent Background Image */}
+      <div className="sticky-image-wrapper">
+        <motion.div 
+          className="hero-image" 
+          style={{ 
+            x: imageX,
+            scale: imageScale,
+            backgroundImage: 'url(/hero.png)', 
+          }} 
+        />
+        <div className="hero-overlay" />
+      </div>
+
+      {/* Hero Content Section */}
+      <section className="hero-section">
+        <motion.div className="hero-content" style={{ opacity: heroOpacity }}>
+          <div className="hero-text-container" style={{ marginTop: '150px' }}>
+            <h2 className="serif" style={{ fontSize: '4.5rem', letterSpacing: '-2px', marginBottom: '5px' }}>Siddharth Ohal</h2>
+            <p style={{ letterSpacing: '8px', textTransform: 'uppercase', color: 'var(--accent-light-purple)', fontSize: '0.9rem', fontWeight: '600' }}>
+              Creative Developer & Designer
+            </p>
+          </div>
+        </motion.div>
+      </section>
+
+      {/* About Section (Reference Image Layout) */}
+      <section id="about" className="about-split-section">
+        <motion.div 
+          className="about-content-left"
+          style={{ opacity: aboutOpacity, y: aboutY }}
+        >
+          <h2 className="section-label">ABOUT</h2>
+          <a href="mailto:sidxohal9049@gmail.com" className="about-email">sidxohal9049@gmail.com</a>
+          
+          <div className="about-description">
+            <p>
+              An IT enthusiast passionate about software development, tech solutions, and problem-solving. 
+              Experienced in Python, API integration, full stack and database systems through hands-on projects.
+            </p>
+            <p>
+              My greatest strength is my ability to merge technical excellence with creative vision, 
+              enabling me to build platforms that are not just functional but also immersive.
+            </p>
+          </div>
+
+          <div className="about-footer-info">
+            <p>Pune, India</p>
+            <p className="footer-sub">International Institute of Information Technology</p>
+          </div>
+        </motion.div>
+      </section>
     </div>
-    
-    <div className="hero-content">
-      <motion.div
-        className="hero-text-container"
-        initial={{ y: 80, opacity: 0 }}
-        animate={{ y: 40, opacity: 1 }}
-        transition={{ duration: 1, delay: 0.5 }}
-        style={{ marginTop: '150px' }}
-      >
-        <h2 className="serif" style={{ fontSize: '4.5rem', letterSpacing: '-2px', marginBottom: '5px' }}>Siddharth Ohal</h2>
-        <p style={{ letterSpacing: '8px', textTransform: 'uppercase', color: 'var(--accent-light-purple)', fontSize: '0.9rem', fontWeight: '600' }}>
-          Creative Developer & Designer
-        </p>
-      </motion.div>
-    </div>
-  </section>
-);
+  );
+};
 
 const GlassCard = ({ title, children, id }) => (
   <section id={id}>
@@ -104,17 +159,12 @@ function App() {
   return (
     <div className="App">
       <Navbar />
-      <HeroSection />
+      <HeroAboutSection />
       
       <main>
-        <GlassCard title="About Me" id="about">
-          <p style={{ fontSize: '1.5rem', lineHeight: '1.6', fontWeight: '300', color: 'var(--text-grey)', marginBottom: '30px' }}>
-            An IT enthusiast passionate about software development, tech solutions, and problem-solving. 
-            Experienced in Python, API integration, full stack and database systems through hands-on projects. 
-            Eager to contribute to innovative solutions and adapting new technologies.
-          </p>
+        <GlassCard title="Education" id="edu">
           <div className="item-row" style={{ border: 'none', padding: 0 }}>
-             <div className="item-date">EDUCATION</div>
+             <div className="item-date">DEGREE</div>
              <div className="item-detail">
                 <h4>Bachelor of Engineering (IT)</h4>
                 <p>International Institute of Information Technology, Pune (2022-26)</p>
