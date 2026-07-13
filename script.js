@@ -11,14 +11,13 @@ const currentFrame = index => (
 );
 
 const images = [];
-const airpods = {
+const sequence = {
   frame: 0
 };
 
 let imagesLoaded = 0;
 let animationStarted = false;
 
-// Set canvas size for high DPI screens
 function setCanvasSize() {
     const scale = window.devicePixelRatio || 1;
     canvas.width = window.innerWidth * scale;
@@ -27,13 +26,11 @@ function setCanvasSize() {
 }
 
 const preloadImages = () => {
-  // Graceful fallback: start anyway after 8 seconds if at least 20% is loaded
   const timeoutId = setTimeout(() => {
-    if (!animationStarted && imagesLoaded > frameCount * 0.2) {
-        console.warn("Loading slow, starting with partial frames...");
+    if (!animationStarted && imagesLoaded > frameCount * 0.1) {
         startAnimation();
     }
-  }, 8000);
+  }, 10000);
 
   for (let i = 0; i < frameCount; i++) {
     const img = new Image();
@@ -47,7 +44,6 @@ const preloadImages = () => {
       }
     };
     img.onerror = () => {
-        console.error(`Failed to load image: ${currentFrame(i)}`);
         imagesLoaded++;
         if (imagesLoaded === frameCount) {
             clearTimeout(timeoutId);
@@ -60,93 +56,80 @@ const preloadImages = () => {
 };
 
 const render = () => {
-  const frameIndex = Math.round(airpods.frame);
-  // Try to find the nearest loaded image if the current frame isn't loaded yet
+  const frameIndex = Math.round(sequence.frame);
   let img = images[frameIndex];
   
+  // Fallback for missing frames
   if (!img || !img.complete || img.naturalWidth === 0) {
-      // Look for the closest loaded frame
-      for (let i = 1; i < frameCount; i++) {
+      for (let i = 1; i < 20; i++) {
           const next = images[frameIndex + i];
           const prev = images[frameIndex - i];
-          if (next && next.complete && next.naturalWidth !== 0) {
-              img = next;
-              break;
-          }
-          if (prev && prev.complete && prev.naturalWidth !== 0) {
-              img = prev;
-              break;
-          }
+          if (next && next.complete && next.naturalWidth !== 0) { img = next; break; }
+          if (prev && prev.complete && prev.naturalWidth !== 0) { img = prev; break; }
       }
   }
 
   if (!img || !img.complete || img.naturalWidth === 0) return;
 
-  const canvasWidth = canvas.width;
-  const canvasHeight = canvas.height;
-  const imgWidth = img.naturalWidth;
-  const imgHeight = img.naturalHeight;
-
-  const canvasRatio = canvasWidth / canvasHeight;
-  const imgRatio = imgWidth / imgHeight;
-
+  const canvasRatio = canvas.width / canvas.height;
+  const imgRatio = img.naturalWidth / img.naturalHeight;
   let drawWidth, drawHeight, offsetX, offsetY;
 
   if (canvasRatio > imgRatio) {
-    drawWidth = canvasWidth;
-    drawHeight = canvasWidth / imgRatio;
+    drawWidth = canvas.width;
+    drawHeight = canvas.width / imgRatio;
     offsetX = 0;
-    offsetY = (canvasHeight - drawHeight) / 2;
+    offsetY = (canvas.height - drawHeight) / 2;
   } else {
-    drawWidth = canvasHeight * imgRatio;
-    drawHeight = canvasHeight;
-    offsetX = (canvasWidth - drawWidth) / 2;
+    drawWidth = canvas.height * imgRatio;
+    drawHeight = canvas.height;
+    offsetX = (canvas.width - drawWidth) / 2;
     offsetY = 0;
   }
 
-  context.clearRect(0, 0, canvasWidth, canvasHeight);
+  context.clearRect(0, 0, canvas.width, canvas.height);
   context.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
 };
 
 const startAnimation = () => {
   if (animationStarted) return;
   animationStarted = true;
-  
   if (loader) loader.classList.add("hidden");
   
-  gsap.to(airpods, {
+  // Main scroll-linked sequence
+  // We span the entire page scroll to the frame sequence
+  gsap.to(sequence, {
     frame: frameCount - 1,
-    roundProps: "frame",
     ease: "none",
     scrollTrigger: {
-      trigger: ".hero",
+      trigger: "main",
       start: "top top",
-      end: "+=400%", // 400% of viewport height scroll distance
-      scrub: 0.5, // Lower value for more responsive feel, higher for smoother
-      pin: true,
-      anticipatePin: 1,
+      end: "bottom bottom",
+      scrub: 1,
     },
     onUpdate: render
   });
 
-  // Hero text animation
-  const tl = gsap.timeline({
-    scrollTrigger: {
-        trigger: ".hero",
-        start: "top top",
-        end: "+=100%",
-        scrub: true,
-    }
+  // Animate sections
+  const sections = gsap.utils.toArray('.glass-card');
+  sections.forEach(section => {
+    gsap.to(section, {
+      scrollTrigger: {
+        trigger: section,
+        start: "top 80%",
+        end: "top 40%",
+        scrub: 1,
+      },
+      y: 0,
+      opacity: 1,
+      ease: "power2.out"
+    });
   });
-
-  tl.fromTo(".hero-content", { opacity: 1 }, { opacity: 0, y: -100, ease: "none" });
 
   // Initial render
   render();
 };
 
 window.addEventListener("resize", setCanvasSize);
-
-// Initialize
 setCanvasSize();
 preloadImages();
