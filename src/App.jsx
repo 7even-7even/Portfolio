@@ -6,16 +6,17 @@ const Navbar = () => (
   <nav className="navbar">
     <div className="nav-logo">7EVEN</div>
     <ul className="nav-links">
+      <li><a href="#hero-section">Home</a></li>
       <li><a href="#about">About</a></li>
       <li><a href="#journey">Journey</a></li>
-      <li><a href="#projects">Work</a></li>
+      <li><a href="#tech">Skills</a></li>
       <li><a href="#contact" className="btn-contact">Contact Me</a></li>
     </ul>
   </nav>
 );
 
 const HeroSection = () => (
-  <section className="hero-section">
+  <section className="hero-section" id="hero-section">
     <div className="hero-bg-container">
       {/* Assuming the image provided is placed in public/hero.png */}
       <div 
@@ -41,7 +42,7 @@ const HeroSection = () => (
       >
         <h2 className="serif" style={{ fontSize: '4.5rem', letterSpacing: '-2px', marginBottom: '5px' }}>Siddharth Ohal</h2>
         <p style={{ letterSpacing: '8px', textTransform: 'uppercase', color: 'var(--accent-light-purple)', fontSize: '0.9rem', fontWeight: '600' }}>
-          Creative Developer & Designer
+          Full Stack Developer
         </p>
       </motion.div>
     </div>
