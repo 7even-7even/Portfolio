@@ -94,13 +94,78 @@ h1, h2, h3, .serif {
   background-color: #000;
 }
 
-.hero-bg-container {
-  position: absolute;
+/* Hero & About Hybrid */
+.hero-about-container {
+  height: 200vh;
+  position: relative;
+  background: var(--bg-black);
+}
+
+.sticky-image-wrapper {
+  position: sticky;
   top: 0;
-  left: 0;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.hero-image {
   width: 100%;
   height: 100%;
-  z-index: 1;
+  background-size: cover;
+  background-position: center;
+}
+
+.about-split-section {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  z-index: 3;
+  padding: 0 10%;
+}
+
+.about-content-left {
+  max-width: 500px;
+}
+
+.section-label {
+  font-size: 4rem;
+  letter-spacing: 5px;
+  border-bottom: 2px solid var(--accent-purple);
+  display: inline-block;
+  margin-bottom: 20px;
+}
+
+.about-email {
+  display: block;
+  color: var(--text-white);
+  text-decoration: none;
+  font-size: 1.2rem;
+  margin-bottom: 60px;
+  opacity: 0.8;
+}
+
+.about-description {
+  font-size: 1.1rem;
+  line-height: 1.8;
+  color: var(--text-grey);
+}
+
+.about-description p {
+  margin-bottom: 20px;
+}
+
+.about-footer-info {
+  margin-top: 100px;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+.footer-sub {
+  font-size: 0.8rem;
+  color: var(--accent-purple);
+  margin-top: 5px;
 }
 
 /* Overlay for the hero image to ensure legibility and matching purple aesthetic */
