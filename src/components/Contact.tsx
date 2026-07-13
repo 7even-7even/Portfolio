@@ -1,63 +1,66 @@
-import { MdArrowOutward, MdCopyright } from "react-icons/md";
-import "./styles/Contact.css";
-import { config } from "../config";
+import { useLayoutEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useEffect } from "react";
+import { MdArrowOutward, MdCopyright } from "react-icons/md";
+import { config } from "../config";
+import "./styles/Contact.css";
 
 gsap.registerPlugin(ScrollTrigger);
 
 const Contact = () => {
-  useEffect(() => {
-    const contactTimeline = gsap.timeline({
-      scrollTrigger: {
-        trigger: ".contact-section",
-        start: "top 80%",
-        end: "bottom center",
-        toggleActions: "play none none none",
-      },
-    });
+  const sectionRef = useRef<HTMLDivElement>(null);
 
-    // Animate title from bottom
-    contactTimeline.fromTo(
-      ".contact-section h3",
-      {
-        opacity: 0,
-        y: 50,
-      },
-      {
-        opacity: 1,
-        y: 0,
-        duration: 0.8,
-        ease: "power3.out",
-      }
-    );
+  useLayoutEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
 
-    // Animate contact boxes with stagger from bottom
-    contactTimeline.fromTo(
-      ".contact-box",
-      {
-        opacity: 0,
-        y: 50,
-      },
-      {
-        opacity: 1,
-        y: 0,
-        duration: 0.6,
-        stagger: 0.15,
-        ease: "power3.out",
-      },
-      "-=0.4"
-    );
+    const context = gsap.context(() => {
+      const timeline = gsap.timeline({
+        scrollTrigger: {
+          trigger: section,
+          start: "top 80%",
+          end: "bottom center",
+          toggleActions: "play none none none",
+        },
+      });
 
-    // Clean up
-    return () => {
-      contactTimeline.kill();
-    };
+      timeline
+        .fromTo(
+          "h3",
+          { opacity: 0, y: 50 },
+          { opacity: 1, y: 0, duration: 0.8, ease: "power3.out" },
+        )
+        .fromTo(
+          ".contact-box",
+          { opacity: 0, y: 50 },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.6,
+            stagger: 0.15,
+            ease: "power3.out",
+          },
+          "-=0.4",
+        );
+    }, section);
+
+    return () => context.revert();
   }, []);
 
+  const socialLinks = [
+    ["Github", config.contact.github],
+    ["LinkedIn", config.contact.linkedin],
+    ["Twitter", config.contact.twitter],
+    ["Facebook", config.contact.facebook],
+    ["Instagram", config.contact.instagram],
+  ] as const;
+
   return (
-    <div className="contact-section section-container" id="contact">
+    <footer
+      className="contact-section section-container"
+      id="contact"
+      ref={sectionRef}
+    >
       <div className="contact-container">
         <h3>{config.developer.fullName}</h3>
         <div className="contact-flex">
@@ -69,69 +72,35 @@ const Contact = () => {
               </a>
             </p>
             <h4>Location</h4>
-            <p>
-              <span>{config.social.location}</span>
-            </p>
+            <p>{config.social.location}</p>
           </div>
           <div className="contact-box">
             <h4>Social</h4>
-            <a
-              href={config.contact.github}
-              target="_blank"
-              rel="noopener noreferrer"
-              data-cursor="disable"
-              className="contact-social"
-            >
-              Github <MdArrowOutward />
-            </a>
-            <a
-              href={config.contact.linkedin}
-              target="_blank"
-              rel="noopener noreferrer"
-              data-cursor="disable"
-              className="contact-social"
-            >
-              Linkedin <MdArrowOutward />
-            </a>
-            <a
-              href={config.contact.twitter}
-              target="_blank"
-              rel="noopener noreferrer"
-              data-cursor="disable"
-              className="contact-social"
-            >
-              Twitter <MdArrowOutward />
-            </a>
-            <a
-              href={config.contact.facebook}
-              target="_blank"
-              rel="noopener noreferrer"
-              data-cursor="disable"
-              className="contact-social"
-            >
-              Facebook <MdArrowOutward />
-            </a>
-            <a
-              href={config.contact.instagram}
-              target="_blank"
-              rel="noopener noreferrer"
-              data-cursor="disable"
-              className="contact-social"
-            >
-              Instagram <MdArrowOutward />
-            </a>
+            {socialLinks.map(([label, href]) => (
+              <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-cursor="disable"
+                className="contact-social"
+                key={label}
+              >
+                {label} <MdArrowOutward aria-hidden="true" />
+              </a>
+            ))}
           </div>
           <div className="contact-box">
             <h2>
-              Designed and Developed <br /> by <span>{config.developer.fullName}</span>
+              Designed and Developed <br /> by {" "}
+              <span>{config.developer.fullName}</span>
             </h2>
             <h5>
-              <MdCopyright /> {new Date().getFullYear()}
+              <MdCopyright aria-hidden="true" /> {new Date().getFullYear()}
             </h5>
           </div>
         </div>
       </div>
-    </div>
+    </footer>
   );
 };
 

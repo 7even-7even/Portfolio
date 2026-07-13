@@ -1,30 +1,37 @@
-import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { defineConfig } from "vite";
 
-// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          'three': ['three', 'three-stdlib'],
-          'react-three': ['@react-three/fiber', '@react-three/drei'],
-          'gsap': ['gsap'],
-          'vendor': ['react', 'react-dom', 'react-router-dom']
-        }
-      }
+        manualChunks(moduleId) {
+          if (!moduleId.includes("node_modules")) return undefined;
+          if (moduleId.includes("three") || moduleId.includes("three-stdlib")) {
+            return "three";
+          }
+          if (moduleId.includes("gsap")) return "gsap";
+          if (
+            moduleId.includes("react") ||
+            moduleId.includes("scheduler")
+          ) {
+            return "vendor";
+          }
+          return undefined;
+        },
+      },
     },
     chunkSizeWarningLimit: 1000,
-    minify: 'terser',
+    minify: "terser",
     terserOptions: {
       compress: {
         drop_console: true,
-        drop_debugger: true
-      }
-    }
+        drop_debugger: true,
+      },
+    },
   },
   optimizeDeps: {
-    include: ['three', 'gsap', 'lenis']
-  }
+    include: ["three", "gsap", "lenis"],
+  },
 });

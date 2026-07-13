@@ -2,78 +2,61 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { TextSplitter } from "../../utils/textSplitter";
 
-interface ParaElement extends HTMLElement {
-  anim?: gsap.core.Animation;
-  split?: TextSplitter;
-}
-
 gsap.registerPlugin(ScrollTrigger);
 
 export default function setSplitText() {
   ScrollTrigger.config({ ignoreMobileResize: true });
-  if (window.innerWidth < 900) return;
-  const paras: NodeListOf<ParaElement> = document.querySelectorAll(".para");
-  const titles: NodeListOf<ParaElement> = document.querySelectorAll(".title");
+  if (window.innerWidth < 900) return () => undefined;
 
-  const TriggerStart = window.innerWidth <= 1024 ? "top 60%" : "20% 60%";
-  const ToggleAction = "play pause resume reverse";
+  const elements = [
+    ...document.querySelectorAll<HTMLElement>(".para"),
+    ...document.querySelectorAll<HTMLElement>(".title:not([data-no-split])"),
+  ];
+  const splitters: TextSplitter[] = [];
+  const animations: gsap.core.Tween[] = [];
+  const triggerStart = window.innerWidth <= 1024 ? "top 60%" : "20% 60%";
+  const toggleActions = "play pause resume reverse";
 
-  paras.forEach((para: ParaElement) => {
-    para.classList.add("visible");
-    if (para.anim) {
-      para.anim.progress(1).kill();
-      para.split?.revert();
-    }
+  elements.forEach((element) => {
+    const isParagraph = element.classList.contains("para");
+    element.classList.add("visible");
 
-    para.split = new TextSplitter(para, {
-      type: "lines,words",
+    const splitter = new TextSplitter(element, {
+      type: isParagraph ? "lines,words" : "chars,lines",
       linesClass: "split-line",
     });
+    splitters.push(splitter);
 
-    para.anim = gsap.fromTo(
-      para.split.words,
-      { autoAlpha: 0, y: 80 },
+    const targets = isParagraph ? splitter.words : splitter.chars;
+    const animation = gsap.fromTo(
+      targets,
+      {
+        autoAlpha: 0,
+        y: 80,
+        rotate: isParagraph ? 0 : 10,
+      },
       {
         autoAlpha: 1,
-        scrollTrigger: {
-          trigger: para.parentElement?.parentElement,
-          toggleActions: ToggleAction,
-          start: TriggerStart,
-        },
-        duration: 1,
-        ease: "power3.out",
-        y: 0,
-        stagger: 0.02,
-      }
-    );
-  });
-  titles.forEach((title: ParaElement) => {
-    if (title.anim) {
-      title.anim.progress(1).kill();
-      title.split?.revert();
-    }
-    title.split = new TextSplitter(title, {
-      type: "chars,lines",
-      linesClass: "split-line",
-    });
-    title.anim = gsap.fromTo(
-      title.split.chars,
-      { autoAlpha: 0, y: 80, rotate: 10 },
-      {
-        autoAlpha: 1,
-        scrollTrigger: {
-          trigger: title.parentElement?.parentElement,
-          toggleActions: ToggleAction,
-          start: TriggerStart,
-        },
-        duration: 0.8,
-        ease: "power2.inOut",
         y: 0,
         rotate: 0,
-        stagger: 0.03,
-      }
+        duration: isParagraph ? 1 : 0.8,
+        ease: isParagraph ? "power3.out" : "power2.inOut",
+        stagger: isParagraph ? 0.02 : 0.03,
+        scrollTrigger: {
+          trigger: element.parentElement?.parentElement ?? element,
+          toggleActions,
+          start: triggerStart,
+        },
+      },
     );
+    animations.push(animation);
   });
 
-  ScrollTrigger.addEventListener("refresh", () => setSplitText());
+  return () => {
+    animations.forEach((animation) => {
+      animation.scrollTrigger?.kill();
+      animation.kill();
+    });
+    splitters.forEach((splitter) => splitter.revert());
+  };
 }

@@ -36,6 +36,15 @@
   color: var(--accentColor);
 }
 
+.what-title-line {
+  display: block;
+}
+
+.what-content:focus-visible {
+  outline: 2px solid var(--accentColor);
+  outline-offset: 4px;
+}
+
 .what-box-in {
   flex-direction: column;
   height: 500px;

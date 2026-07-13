@@ -1,93 +1,64 @@
-import {
-  FaGithub,
-  FaInstagram,
-  FaLinkedinIn,
-  FaXTwitter,
-} from "react-icons/fa6";
-import "./styles/SocialIcons.css";
+import { FaGithub, FaInstagram, FaLinkedinIn, FaXTwitter } from "react-icons/fa6";
 import { TbNotes } from "react-icons/tb";
-import { useEffect } from "react";
-import HoverLinks from "./HoverLinks";
 import { config } from "../config";
+import HoverLinks from "./HoverLinks";
+import "./styles/SocialIcons.css";
 
 const SocialIcons = () => {
-  useEffect(() => {
-    const social = document.getElementById("social") as HTMLElement;
+  const handleMouseMove = (event: React.MouseEvent<HTMLSpanElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const link = event.currentTarget.querySelector<HTMLElement>("a");
+    if (!link) return;
 
-    social.querySelectorAll("span").forEach((item) => {
-      const elem = item as HTMLElement;
-      const link = elem.querySelector("a") as HTMLElement;
+    link.style.setProperty("--siLeft", `${event.clientX - rect.left}px`);
+    link.style.setProperty("--siTop", `${event.clientY - rect.top}px`);
+  };
 
-      const rect = elem.getBoundingClientRect();
-      let mouseX = rect.width / 2;
-      let mouseY = rect.height / 2;
-      let currentX = 0;
-      let currentY = 0;
+  const resetPosition = (event: React.MouseEvent<HTMLSpanElement>) => {
+    const link = event.currentTarget.querySelector<HTMLElement>("a");
+    link?.style.setProperty("--siLeft", "50%");
+    link?.style.setProperty("--siTop", "50%");
+  };
 
-      const updatePosition = () => {
-        currentX += (mouseX - currentX) * 0.1;
-        currentY += (mouseY - currentY) * 0.1;
-
-        link.style.setProperty("--siLeft", `${currentX}px`);
-        link.style.setProperty("--siTop", `${currentY}px`);
-
-        requestAnimationFrame(updatePosition);
-      };
-
-      const onMouseMove = (e: MouseEvent) => {
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-
-        if (x < 40 && x > 10 && y < 40 && y > 5) {
-          mouseX = x;
-          mouseY = y;
-        } else {
-          mouseX = rect.width / 2;
-          mouseY = rect.height / 2;
-        }
-      };
-
-      document.addEventListener("mousemove", onMouseMove);
-
-      updatePosition();
-
-      return () => {
-        elem.removeEventListener("mousemove", onMouseMove);
-      };
-    });
-  }, []);
+  const links = [
+    { href: config.contact.github, label: "GitHub", icon: <FaGithub /> },
+    { href: config.contact.linkedin, label: "LinkedIn", icon: <FaLinkedinIn /> },
+    { href: config.contact.twitter, label: "X / Twitter", icon: <FaXTwitter /> },
+    { href: config.contact.instagram, label: "Instagram", icon: <FaInstagram /> },
+  ];
 
   return (
-    <div className="icons-section">
+    <aside className="icons-section" aria-label="Social links">
       <div className="social-icons" data-cursor="icons" id="social">
-        <span>
-          <a href={config.contact.github} target="_blank" rel="noopener noreferrer">
-            <FaGithub />
-          </a>
-        </span>
-        <span>
-          <a href={config.contact.linkedin} target="_blank" rel="noopener noreferrer">
-            <FaLinkedinIn />
-          </a>
-        </span>
-        <span>
-          <a href={config.contact.twitter} target="_blank" rel="noopener noreferrer">
-            <FaXTwitter />
-          </a>
-        </span>
-        <span>
-          <a href={config.contact.instagram} target="_blank" rel="noopener noreferrer">
-            <FaInstagram />
-          </a>
-        </span>
+        {links.map(({ href, label, icon }) => (
+          <span
+            key={label}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={resetPosition}
+          >
+            <a
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={label}
+            >
+              {icon}
+            </a>
+          </span>
+        ))}
       </div>
-      <a className="resume-button" href="#">
+      <button
+        className="resume-button"
+        type="button"
+        disabled
+        title="Resume will be available soon"
+      >
         <HoverLinks text="RESUME" />
-        <span>
+        <span aria-hidden="true">
           <TbNotes />
         </span>
-      </a>
-    </div>
+      </button>
+    </aside>
   );
 };
 

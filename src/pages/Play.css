@@ -270,8 +270,21 @@ body:has(.play-page) {
   display: flex;
   align-items: center;
   justify-content: center;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  appearance: none;
+  color: inherit;
+  font: inherit;
   cursor: pointer;
   transition: background-color 0.15s ease;
+}
+
+.chess-square:focus-visible {
+  z-index: 2;
+  outline: 3px solid var(--accentColor);
+  outline-offset: -3px;
 }
 
 .chess-square.light {
@@ -530,23 +543,6 @@ body:has(.play-page) {
   .control-btn {
     flex: 1;
   }
-
-  .chat-panel {
-    width: 100%;
-    max-width: 540px;
-    height: 400px;
-    min-height: 320px;
-    max-height: 70vh;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .chat-messages {
-    max-height: 220px;
-    min-height: 120px;
-    overflow-y: auto;
-    flex: 1 1 auto;
-  }
 }
 
 @media only screen and (max-width: 600px) {
@@ -586,21 +582,6 @@ body:has(.play-page) {
 
   .player-rating {
     font-size: 11px;
-  }
-
-  .chat-panel {
-    height: 350px;
-    max-height: 350px;
-    min-height: 300px;
-  }
-
-  .chat-messages {
-    flex: 1;
-    max-height: 200px;
-    min-height: 150px;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    -webkit-overflow-scrolling: touch;
   }
 }
 
@@ -762,9 +743,15 @@ body:has(.play-page) {
   transition: all 0.2s;
 }
 
-.chat-send-btn:hover {
+.chat-send-btn:hover:not(:disabled) {
   transform: scale(1.05);
   box-shadow: 0 0 20px rgba(194, 164, 255, 0.4);
+}
+
+.chat-input:disabled,
+.chat-send-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 /* Responsive for chat */
@@ -789,5 +776,18 @@ body:has(.play-page) {
     min-height: 120px;
     overflow-y: auto;
     flex: 1 1 auto;
+  }
+}
+/* Final small-screen overrides must follow the shared tablet rules. */
+@media only screen and (max-width: 600px) {
+  .chat-panel {
+    height: 350px;
+    min-height: 300px;
+    max-height: 350px;
+  }
+
+  .chat-messages {
+    min-height: 150px;
+    max-height: 200px;
   }
 }

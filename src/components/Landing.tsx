@@ -1,42 +1,39 @@
 import { PropsWithChildren } from "react";
-import "./styles/Landing.css";
 import { config } from "../config";
+import "./styles/Landing.css";
 
 const Landing = ({ children }: PropsWithChildren) => {
   const nameParts = config.developer.fullName.split(" ");
   const firstName = nameParts[0] || config.developer.name;
-  const lastName = nameParts.slice(1).join(" ") || "";
+  const lastName = nameParts.slice(1).join(" ");
 
   return (
-    <>
-      <div className="landing-section" id="landingDiv">
-        <div className="landing-container">
-          <div className="landing-intro">
-            <h2>Hello! I'm</h2>
-            <h1>
-              {firstName.toUpperCase()}
-              {' '}
-              <br />
-              {lastName && <span>{lastName.toUpperCase()}</span>}
-            </h1>
-          </div>
-          <div className="landing-info">
-            <h3>An</h3>
-            <h2 className="landing-info-h2">
-              <div className="landing-h2-1">AI Engineer</div>
-            </h2>
-            <h2>
-              <div className="landing-h2-info">Full-Stack Developer</div>
-            </h2>
-          </div>
-          {/* Mobile photo - shows only on mobile when 3D character is hidden */}
-          <div className="mobile-photo">
-            <img src="/images/mypicnbg.png" alt="Redoyanul Haque" />
-          </div>
+    <section className="landing-section" id="landingDiv" aria-label="Introduction">
+      <div className="landing-container">
+        <div className="landing-intro">
+          <h2>Hello! I&apos;m</h2>
+          <h1>
+            <span className="landing-name-line">{firstName.toUpperCase()}</span>
+            {lastName && (
+              <span className="landing-name-line">{lastName.toUpperCase()}</span>
+            )}
+          </h1>
         </div>
-        {children}
+        <div className="landing-info">
+          <h3>An</h3>
+          <h2 className="landing-info-h2">
+            <span className="landing-h2-1">AI Engineer</span>
+          </h2>
+          <h2>
+            <span className="landing-h2-info">Full-Stack Developer</span>
+          </h2>
+        </div>
+        <div className="mobile-photo">
+          <img src="/images/mypicnbg.png" alt="Redoyanul Haque" />
+        </div>
       </div>
-    </>
+      {children}
+    </section>
   );
 };
 

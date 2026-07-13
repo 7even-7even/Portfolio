@@ -1,19 +1,24 @@
 import { useEffect } from "react";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import HoverLinks from "./HoverLinks";
 import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
+import { config } from "../config";
+import { getLenis, setLenis } from "../utils/lenis";
+import HoverLinks from "./HoverLinks";
 import "./styles/Navbar.css";
 
 gsap.registerPlugin(ScrollTrigger);
-export let lenis: Lenis | null = null;
 
 const Navbar = () => {
   useEffect(() => {
-    // Initialize Lenis smooth scroll
-    lenis = new Lenis({
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      document.body.style.overflowY = "auto";
+      return;
+    }
+
+    const instance = new Lenis({
       duration: 1.7,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      easing: (value) => Math.min(1, 1.001 - 2 ** (-10 * value)),
       orientation: "vertical",
       gestureOrientation: "vertical",
       smoothWheel: true,
@@ -22,82 +27,89 @@ const Navbar = () => {
       infinite: false,
     });
 
-    // Start paused
-    lenis.stop();
+    setLenis(instance);
+    instance.stop();
+    instance.on("scroll", ScrollTrigger.update);
 
-    // Handle smooth scroll animation frame
-    function raf(time: number) {
-      lenis?.raf(time);
-      requestAnimationFrame(raf);
-    }
-    requestAnimationFrame(raf);
+    let animationFrame = 0;
+    const updateScroll = (time: number) => {
+      instance.raf(time);
+      animationFrame = window.requestAnimationFrame(updateScroll);
+    };
 
-    // Handle navigation links
-    let links = document.querySelectorAll(".header ul a");
-    links.forEach((elem) => {
-      let element = elem as HTMLAnchorElement;
-      element.addEventListener("click", (e) => {
-        if (window.innerWidth > 1024) {
-          e.preventDefault();
-          let elem = e.currentTarget as HTMLAnchorElement;
-          let section = elem.getAttribute("data-href");
-          if (section && lenis) {
-            const target = document.querySelector(section) as HTMLElement;
-            if (target) {
-              lenis.scrollTo(target, {
-                offset: 0,
-                duration: 1.5,
-              });
-            }
-          }
-        }
-      });
-    });
+    const handleResize = () => instance.resize();
 
-    // Handle resize
-    window.addEventListener("resize", () => {
-      lenis?.resize();
-    });
+    animationFrame = window.requestAnimationFrame(updateScroll);
+    window.addEventListener("resize", handleResize);
 
     return () => {
-      lenis?.destroy();
+      window.cancelAnimationFrame(animationFrame);
+      window.removeEventListener("resize", handleResize);
+      instance.off("scroll", ScrollTrigger.update);
+      instance.destroy();
+      if (getLenis() === instance) setLenis(null);
     };
   }, []);
+
+  const handleNavigation = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    const sectionSelector = event.currentTarget.dataset.href;
+    const scrollController = getLenis();
+
+    if (!sectionSelector || !scrollController || window.innerWidth <= 1024) {
+      return;
+    }
+
+    const target = document.querySelector<HTMLElement>(sectionSelector);
+    if (!target) return;
+
+    event.preventDefault();
+    scrollController.scrollTo(target, { offset: 0, duration: 1.5 });
+  };
+
   return (
     <>
-      <div className="header">
-        <a href="/#" className="navbar-title" data-cursor="disable">
+      <header className="header">
+        <a
+          href="#landingDiv"
+          data-href="#landingDiv"
+          onClick={handleNavigation}
+          className="navbar-title"
+          data-cursor="disable"
+          aria-label="Go to the top of the page"
+        >
           RH
         </a>
         <a
-          href="mailto:redoyanul1234@gmail.com"
+          href={`mailto:${config.contact.email}`}
           className="navbar-connect"
           data-cursor="disable"
         >
-          redoyanul1234@gmail.com
+          {config.contact.email}
         </a>
-        <ul>
-          <li>
-            <a data-href="#about" href="#about">
-              <HoverLinks text="ABOUT" />
-            </a>
-          </li>
-          <li>
-            <a data-href="#work" href="#work">
-              <HoverLinks text="WORK" />
-            </a>
-          </li>
-          <li>
-            <a data-href="#contact" href="#contact">
-              <HoverLinks text="CONTACT" />
-            </a>
-          </li>
-        </ul>
-      </div>
+        <nav aria-label="Primary navigation">
+          <ul>
+            <li>
+              <a data-href="#about" href="#about" onClick={handleNavigation}>
+                <HoverLinks text="ABOUT" />
+              </a>
+            </li>
+            <li>
+              <a data-href="#work" href="#work" onClick={handleNavigation}>
+                <HoverLinks text="WORK" />
+              </a>
+            </li>
+            <li>
+              <a data-href="#contact" href="#contact" onClick={handleNavigation}>
+                <HoverLinks text="CONTACT" />
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </header>
 
-      <div className="landing-circle1"></div>
-      <div className="landing-circle2"></div>
-      <div className="nav-fade"></div>
+      <div className="landing-circle1" aria-hidden="true" />
+      <div className="landing-circle2" aria-hidden="true" />
+      <div className="nav-fade" aria-hidden="true" />
     </>
   );
 };

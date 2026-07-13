@@ -1,60 +1,62 @@
-import {
-  createContext,
-  PropsWithChildren,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import { PropsWithChildren, useEffect, useMemo, useRef, useState } from "react";
 import Loading from "../components/Loading";
-
-interface LoadingType {
-  isLoading: boolean;
-  setIsLoading: (state: boolean) => void;
-  setLoading: (percent: number) => void;
-}
-
-export const LoadingContext = createContext<LoadingType | null>(null);
+import { LoadingContext } from "./loadingContext";
 
 export const LoadingProvider = ({ children }: PropsWithChildren) => {
-  const [isLoading, setIsLoading] = useState(() => {
-    // Skip loading on mobile
-    if (window.innerWidth <= 768) return false;
-    return true;
-  });
+  const [isLoading, setIsLoading] = useState(
+    () => window.innerWidth > 1024,
+  );
   const [loading, setLoading] = useState(0);
+  const hasStartedInitialEffects = useRef(false);
 
-  const value = {
-    isLoading,
-    setIsLoading,
-    setLoading,
-  };
   useEffect(() => {
-    // Auto-start animations on mobile since there's no 3D model
-    if (window.innerWidth <= 768) {
-      import("../components/utils/initialFX").then((module) => {
-        if (module.initialFX) {
-          setTimeout(() => {
-            module.initialFX();
-          }, 100);
+    let cancelled = false;
+    let startTimer: number | undefined;
+
+    const startWithoutCharacter = async () => {
+      if (window.innerWidth > 1024 || hasStartedInitialEffects.current) {
+        return;
+      }
+
+      hasStartedInitialEffects.current = true;
+      setIsLoading(false);
+
+      try {
+        const { initialFX } = await import("../components/utils/initialFX");
+        if (!cancelled) {
+          startTimer = window.setTimeout(initialFX, 100);
         }
-      });
-    }
+      } catch (error) {
+        if (cancelled) return;
+        console.error("Unable to initialize page animations:", error);
+        document.body.style.overflowY = "auto";
+      }
+    };
+
+    void startWithoutCharacter();
+
+    const handleResize = () => {
+      void startWithoutCharacter();
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(startTimer);
+      window.removeEventListener("resize", handleResize);
+    };
   }, []);
 
-  useEffect(() => {}, [loading]);
+  const value = useMemo(
+    () => ({ isLoading, setIsLoading, setLoading }),
+    [isLoading],
+  );
 
   return (
-    <LoadingContext.Provider value={value as LoadingType}>
+    <LoadingContext.Provider value={value}>
       {isLoading && <Loading percent={loading} />}
       <main className="main-body">{children}</main>
     </LoadingContext.Provider>
   );
-};
-
-export const useLoading = () => {
-  const context = useContext(LoadingContext);
-  if (!context) {
-    throw new Error("useLoading must be used within a LoadingProvider");
-  }
-  return context;
 };

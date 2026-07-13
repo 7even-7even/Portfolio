@@ -48,13 +48,12 @@
     margin: 0;
   }
 
-  /* Ensure name parts display correctly */
-  .landing-intro h1 br {
+  .landing-name-line {
     display: block;
-    /* Keep break on mobile for 2 lines, or use display:none for 1 line */
-    content: " ";
-    /* Fallback */
-    margin-bottom: 5px;
+  }
+
+  .landing-name-line + .landing-name-line {
+    margin-top: 5px;
   }
 
   /* Subtitles Container */
@@ -340,6 +339,10 @@
   line-height: 28px;
   font-weight: 500;
   font-family: "Geist", sans-serif;
+}
+
+.landing-name-line {
+  display: block;
 }
 
 /* .landing-intro h1 span {

@@ -1,5 +1,6 @@
 import { PropsWithChildren, useEffect, useState } from "react";
 import About from "./About";
+import CallToAction from "./CallToAction";
 import Career from "./Career";
 import Contact from "./Contact";
 import Cursor from "./Cursor";
@@ -8,41 +9,47 @@ import Navbar from "./Navbar";
 import SocialIcons from "./SocialIcons";
 import WhatIDo from "./WhatIDo";
 import Work from "./Work";
-import TechStackNew from "./TechStackNew";
-import CallToAction from "./CallToAction";
 import setSplitText from "./utils/splitText";
 
 const MainContainer = ({ children }: PropsWithChildren) => {
-  const [isDesktopView, setIsDesktopView] = useState<boolean>(
-    window.innerWidth > 1024
+  const [isDesktopView, setIsDesktopView] = useState(
+    () => window.innerWidth > 1024,
   );
-  const [isMobile] = useState<boolean>(window.innerWidth <= 768);
 
   useEffect(() => {
+    let resizeTimer: number | undefined;
+    let cleanupSplitText = setSplitText();
+
     const resizeHandler = () => {
-      setSplitText();
+      window.clearTimeout(resizeTimer);
       setIsDesktopView(window.innerWidth > 1024);
+      resizeTimer = window.setTimeout(() => {
+        cleanupSplitText();
+        cleanupSplitText = setSplitText();
+      }, 150);
     };
-    resizeHandler();
+
     window.addEventListener("resize", resizeHandler);
+
     return () => {
+      window.clearTimeout(resizeTimer);
       window.removeEventListener("resize", resizeHandler);
+      cleanupSplitText();
     };
-  }, [isDesktopView]);
+  }, []);
 
   return (
     <div className="container-main">
       <Cursor />
       <Navbar />
       <SocialIcons />
-      {isDesktopView && !isMobile && children}
-      <div className="container-main">
+      {isDesktopView && children}
+      <div className="content-main">
         <Landing />
         <About />
         <WhatIDo />
         <Career />
         <Work />
-        <TechStackNew />
         <CallToAction />
         <Contact />
       </div>

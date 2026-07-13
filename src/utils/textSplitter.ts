@@ -1,37 +1,38 @@
-// Simple text splitter utility to replace GSAP SplitText
+interface TextSplitterOptions {
+  type?: string;
+  linesClass?: string;
+}
+
 export class TextSplitter {
   chars: Element[] = [];
   words: Element[] = [];
   lines: Element[] = [];
   elements: Element[] = [];
-  selector: string | Function;
-  private originalHTML: Map<Element, string> = new Map();
 
-  constructor(target: string | Element | NodeListOf<Element> | Element[], vars?: { type?: string; linesClass?: string }) {
-    const type = vars?.type || "chars,words,lines";
-    const linesClass = vars?.linesClass || "split-line";
+  private originalHTML = new Map<Element, string>();
+  private animationFrames: number[] = [];
 
-    // Get elements
-    let elements: Element[] = [];
+  constructor(
+    target: string | Element | NodeListOf<Element> | Element[],
+    options?: TextSplitterOptions,
+  ) {
+    const type = options?.type ?? "chars,words,lines";
+    const linesClass = options?.linesClass ?? "split-line";
+
     if (typeof target === "string") {
-      elements = Array.from(document.querySelectorAll(target));
+      this.elements = Array.from(document.querySelectorAll(target));
     } else if (target instanceof NodeList) {
-      elements = Array.from(target);
+      this.elements = Array.from(target);
     } else if (Array.isArray(target)) {
-      elements = target;
+      this.elements = target;
     } else {
-      elements = [target];
+      this.elements = [target];
     }
 
-    this.selector = typeof target === "string" ? target : "";
-    this.elements = elements;
-
-    elements.forEach((element) => {
-      // Store original HTML for revert
+    this.elements.forEach((element) => {
       this.originalHTML.set(element, element.innerHTML);
 
       if (type.includes("chars") && type.includes("words")) {
-        // Split into words first, then chars
         this.splitWords(element);
         this.splitCharsFromWords(element);
       } else if (type.includes("chars")) {
@@ -47,114 +48,119 @@ export class TextSplitter {
   }
 
   private splitChars(element: Element) {
-    const text = element.textContent || "";
-    const chars = text.split("");
-    
-    element.innerHTML = chars
-      .map((char) => {
-        if (char === " ") {
-          return '<span class="split-char"> </span>';
-        }
-        if (char === "\n") {
-          return "<br>";
-        }
-        return `<span class="split-char">${char}</span>`;
-      })
-      .join("");
+    const fragment = document.createDocumentFragment();
 
-    this.chars.push(...Array.from(element.querySelectorAll(".split-char")));
+    Array.from(element.textContent ?? "").forEach((character) => {
+      if (character === "\n") {
+        fragment.appendChild(document.createElement("br"));
+        return;
+      }
+
+      const span = document.createElement("span");
+      span.className = "split-char";
+      span.textContent = character;
+      fragment.appendChild(span);
+      this.chars.push(span);
+    });
+
+    element.replaceChildren(fragment);
   }
 
   private splitWords(element: Element) {
-    const text = element.textContent || "";
-    const words = text.split(/(\s+)/);
+    const fragment = document.createDocumentFragment();
+    const parts = (element.textContent ?? "").split(/(\s+)/);
 
-    element.innerHTML = words
-      .map((word) => {
-        if (word.trim().length === 0) {
-          return word; // Preserve whitespace
-        }
-        return `<span class="split-word">${word}</span>`;
-      })
-      .join("");
+    parts.forEach((part) => {
+      if (!part.trim()) {
+        fragment.appendChild(document.createTextNode(part));
+        return;
+      }
 
-    this.words.push(...Array.from(element.querySelectorAll(".split-word")));
+      const span = document.createElement("span");
+      span.className = "split-word";
+      span.textContent = part;
+      fragment.appendChild(span);
+      this.words.push(span);
+    });
+
+    element.replaceChildren(fragment);
   }
 
   private splitCharsFromWords(element: Element) {
-    const words = element.querySelectorAll(".split-word");
-    words.forEach((word) => {
-      const text = word.textContent || "";
-      const chars = text.split("");
-      word.innerHTML = chars
-        .map((char) => `<span class="split-char">${char}</span>`)
-        .join("");
-      this.chars.push(...Array.from(word.querySelectorAll(".split-char")));
+    element.querySelectorAll(".split-word").forEach((word) => {
+      const fragment = document.createDocumentFragment();
+
+      Array.from(word.textContent ?? "").forEach((character) => {
+        const span = document.createElement("span");
+        span.className = "split-char";
+        span.textContent = character;
+        fragment.appendChild(span);
+        this.chars.push(span);
+      });
+
+      word.replaceChildren(fragment);
     });
   }
 
   private splitLines(element: Element, linesClass: string) {
-    // Use requestAnimationFrame to ensure layout is complete
-    requestAnimationFrame(() => {
+    const animationFrame = window.requestAnimationFrame(() => {
       const items = element.querySelectorAll(".split-word, .split-char");
-      if (items.length === 0) return;
+      if (!items.length || !element.isConnected) return;
 
+      const groupedLines: Element[][] = [];
       let currentLine: Element[] = [];
-      let lines: Element[][] = [];
-      let currentTop = 0;
+      let currentTop: number | null = null;
 
       items.forEach((item) => {
-        const rect = item.getBoundingClientRect();
-        if (currentTop === 0) {
-          currentTop = rect.top;
-        }
+        const top = item.getBoundingClientRect().top;
+        if (currentTop === null) currentTop = top;
 
-        if (Math.abs(rect.top - currentTop) > 5) {
-          // New line
-          if (currentLine.length > 0) {
-            lines.push([...currentLine]);
-          }
+        if (Math.abs(top - currentTop) > 5) {
+          if (currentLine.length) groupedLines.push(currentLine);
           currentLine = [item];
-          currentTop = rect.top;
+          currentTop = top;
         } else {
           currentLine.push(item);
         }
       });
 
-      if (currentLine.length > 0) {
-        lines.push(currentLine);
-      }
+      if (currentLine.length) groupedLines.push(currentLine);
 
-      // Wrap lines
-      lines.forEach((line) => {
-        if (line.length === 0) return;
+      groupedLines.forEach((line) => {
+        const firstItem = line[0];
+        const parent = firstItem.parentNode;
+        if (!parent) return;
+
         const lineWrapper = document.createElement("span");
         lineWrapper.className = linesClass;
         lineWrapper.style.display = "block";
-        const firstItem = line[0];
-        firstItem.parentNode?.insertBefore(lineWrapper, firstItem);
+        parent.insertBefore(lineWrapper, firstItem);
+
         line.forEach((item) => {
-          if (item.parentNode === lineWrapper.parentNode) {
-            lineWrapper.appendChild(item);
-          }
+          if (item.parentNode === parent) lineWrapper.appendChild(item);
         });
       });
 
-      this.lines.push(...Array.from(element.querySelectorAll(`.${linesClass}`)));
+      this.lines.push(
+        ...Array.from(element.querySelectorAll(`.${linesClass}`)),
+      );
     });
+
+    this.animationFrames.push(animationFrame);
   }
 
   revert() {
+    this.animationFrames.forEach((frame) => window.cancelAnimationFrame(frame));
+
     this.elements.forEach((element) => {
       const original = this.originalHTML.get(element);
-      if (original !== undefined) {
-        element.innerHTML = original;
-      }
+      if (original !== undefined) element.innerHTML = original;
     });
+
     this.chars = [];
     this.words = [];
     this.lines = [];
+    this.animationFrames = [];
     this.originalHTML.clear();
   }
 }
-

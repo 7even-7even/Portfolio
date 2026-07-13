@@ -31,11 +31,19 @@ interface MoveHistory {
 }
 
 interface ChatMessage {
-  role: 'user' | 'assistant' | 'system';
+  role: "user" | "assistant" | "system";
   content: string;
 }
 
-// API key is now handled server-side in api/chat.js
+interface ChatApiResponse {
+  choices?: Array<{
+    message?: {
+      content?: string;
+    };
+  }>;
+}
+
+// API credentials must be handled by the server-side /api/chat endpoint.
 
 const SYSTEM_PROMPT = `You are Redoyanul Haque, a passionate AI & Full-Stack Developer from Bangladesh. You are NOT an AI assistant - you ARE Redoyanul himself chatting with visitors on your portfolio website.
 
@@ -72,9 +80,12 @@ const Play = () => {
   const [boardFlipped, setBoardFlipped] = useState(false);
   const [lastMove, setLastMove] = useState<{ from: Square; to: Square } | null>(null);
   const [gameStatus, setGameStatus] = useState<string>("");
-  const [playerColor] = useState<Color>("w");
+  const playerColor: Color = "w";
   const [engineThinking, setEngineThinking] = useState(false);
+  const [engineReady, setEngineReady] = useState(false);
   const redoxchessRef = useRef<RedoxChessEngine | null>(null);
+  const gameRef = useRef(game);
+  const chatRequestRef = useRef<AbortController | null>(null);
 
   // Chat state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
@@ -101,33 +112,104 @@ const Play = () => {
     }
   }, []);
 
+  const makeMove = useCallback((from: Square, to: Square) => {
+    try {
+      const currentGame = gameRef.current;
+      const gameCopy = new Chess();
+
+      currentGame.history({ verbose: true }).forEach((historicalMove) => {
+        gameCopy.move({
+          from: historicalMove.from,
+          to: historicalMove.to,
+          promotion: historicalMove.promotion,
+        });
+      });
+
+      const move = gameCopy.move({ from, to, promotion: "q" });
+      if (!move) return false;
+
+      if (move.captured) {
+        if (move.color === "w") {
+          setCapturedBlack((previous) => [...previous, move.captured!]);
+        } else {
+          setCapturedWhite((previous) => [...previous, move.captured!]);
+        }
+      }
+
+      setMoveHistory((previous) => [
+        ...previous,
+        {
+          from: move.from,
+          to: move.to,
+          piece: move.piece,
+          captured: move.captured,
+          san: move.san,
+        },
+      ]);
+      setLastMove({ from, to });
+      gameRef.current = gameCopy;
+      setGame(gameCopy);
+      setSelectedSquare(null);
+      setPossibleMoves([]);
+      return true;
+    } catch {
+      setSelectedSquare(null);
+      setPossibleMoves([]);
+      return false;
+    }
+  }, []);
+
   useEffect(() => {
+    gameRef.current = game;
     updateGameStatus(game);
   }, [game, updateGameStatus]);
 
   useEffect(() => {
-    const initEngine = async () => {
-      redoxchessRef.current = new RedoxChessEngine();
-      await redoxchessRef.current.init();
-    };
-    initEngine();
+    const engine = new RedoxChessEngine();
+    let active = true;
+    redoxchessRef.current = engine;
+
+    void engine
+      .init()
+      .then(() => {
+        if (active) setEngineReady(true);
+      })
+      .catch((error) => {
+        if (active) console.error("Unable to initialize the chess engine:", error);
+      });
+
     return () => {
-      redoxchessRef.current?.quit();
+      active = false;
+      engine.quit();
+      if (redoxchessRef.current === engine) redoxchessRef.current = null;
     };
   }, []);
 
   useEffect(() => {
-    if (game.turn() === 'b' && !game.isGameOver() && redoxchessRef.current) {
-      setEngineThinking(true);
-      redoxchessRef.current.setPosition(game.fen());
-      redoxchessRef.current.getBestMove((move) => {
-        const from = move.substring(0, 2) as Square;
-        const to = move.substring(2, 4) as Square;
-        makeMove(from, to);
-        setEngineThinking(false);
-      }, 12);
+    const engine = redoxchessRef.current;
+    if (!engineReady || game.turn() !== "b" || game.isGameOver() || !engine) {
+      return;
     }
-  }, [game]);
+
+    let cancelled = false;
+    setEngineThinking(true);
+    engine.setPosition(game.fen());
+    const searchStarted = engine.getBestMove((engineMove) => {
+      if (cancelled || !/^[a-h][1-8][a-h][1-8]/.test(engineMove)) return;
+
+      const from = engineMove.slice(0, 2) as Square;
+      const to = engineMove.slice(2, 4) as Square;
+      makeMove(from, to);
+      setEngineThinking(false);
+    }, 12);
+
+    if (!searchStarted) setEngineThinking(false);
+
+    return () => {
+      cancelled = true;
+      engine.stop();
+    };
+  }, [engineReady, game, makeMove]);
 
   const getPieceAt = (square: Square): { type: PieceSymbol; color: Color } | null => {
     return game.get(square) || null;
@@ -162,43 +244,11 @@ const Play = () => {
     }
   };
 
-  const makeMove = (from: Square, to: Square) => {
-    try {
-      const gameCopy = new Chess(game.fen());
-      const move = gameCopy.move({ from, to, promotion: 'q' }); // Auto-promote to queen
-
-      if (move) {
-        // Update captured pieces
-        if (move.captured) {
-          if (move.color === 'w') {
-            setCapturedBlack(prev => [...prev, move.captured!]);
-          } else {
-            setCapturedWhite(prev => [...prev, move.captured!]);
-          }
-        }
-
-        // Update move history
-        setMoveHistory(prev => [...prev, {
-          from: move.from,
-          to: move.to,
-          piece: move.piece,
-          captured: move.captured,
-          san: move.san
-        }]);
-
-        setLastMove({ from: from, to: to });
-        setGame(gameCopy);
-        setSelectedSquare(null);
-        setPossibleMoves([]);
-      }
-    } catch {
-      setSelectedSquare(null);
-      setPossibleMoves([]);
-    }
-  };
-
   const resetGame = () => {
-    setGame(new Chess());
+    redoxchessRef.current?.stop();
+    const freshGame = new Chess();
+    gameRef.current = freshGame;
+    setGame(freshGame);
     setSelectedSquare(null);
     setPossibleMoves([]);
     setMoveHistory([]);
@@ -207,6 +257,7 @@ const Play = () => {
     setLastMove(null);
     setGameStatus("White's turn");
     setBoardFlipped(false);
+    setEngineThinking(false);
   };
 
   const flipBoard = () => {
@@ -221,61 +272,84 @@ const Play = () => {
     setBoardFlipped(!boardFlipped);
   };
 
-  const sendMessage = async () => {
-    if (!chatInput.trim()) return;
+  useEffect(
+    () => () => {
+      const activeRequest = chatRequestRef.current;
+      chatRequestRef.current = null;
+      activeRequest?.abort();
+    },
+    [],
+  );
 
-    const userMessage: ChatMessage = { role: 'user', content: chatInput };
-    setChatMessages(prev => [...prev, userMessage]);
-    setChatInput('');
+  const sendMessage = async () => {
+    const input = chatInput.trim();
+    if (!input || isTyping) return;
+
+    const userMessage: ChatMessage = { role: "user", content: input };
+    const messages = [
+      { role: "system", content: SYSTEM_PROMPT },
+      ...chatMessages
+        .filter((message) => message.role !== "system")
+        .map((message) => ({
+          role: message.role,
+          content: message.content,
+        })),
+      userMessage,
+    ];
+
+    setChatMessages((previous) => [...previous, userMessage]);
+    setChatInput("");
     setIsTyping(true);
 
-    try {
-      const messages = [
-        { role: 'system', content: SYSTEM_PROMPT },
-        ...chatMessages.filter(m => m.role !== 'system').map(m => ({
-          role: m.role,
-          content: m.content
-        })),
-        { role: 'user', content: chatInput }
-      ];
+    const controller = new AbortController();
+    chatRequestRef.current = controller;
+    const timeout = window.setTimeout(() => controller.abort(), 15_000);
 
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messages: messages,
-        }),
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages }),
+        signal: controller.signal,
       });
 
-      const data = await response.json();
-
-      if (data.choices && data.choices[0]?.message?.content) {
-        const assistantMessage: ChatMessage = {
-          role: 'assistant',
-          content: data.choices[0].message.content
-        };
-        setChatMessages(prev => [...prev, assistantMessage]);
-      } else {
-        throw new Error('Invalid response');
+      if (!response.ok) {
+        throw new Error(`Chat request failed with status ${response.status}`);
       }
+      if (!response.headers.get("content-type")?.includes("application/json")) {
+        throw new Error("The chat endpoint did not return JSON");
+      }
+
+      const data = (await response.json()) as ChatApiResponse;
+      const content = data.choices?.[0]?.message?.content?.trim();
+      if (!content) throw new Error("The chat endpoint returned an empty response");
+
+      setChatMessages((previous) => [
+        ...previous,
+        { role: "assistant", content },
+      ]);
     } catch (error) {
-      console.error('Chat error:', error);
-      const errorMessage: ChatMessage = {
-        role: 'assistant',
-        content: 'Sorry, having some connection issues. Try again? 😅'
-      };
-      setChatMessages(prev => [...prev, errorMessage]);
+      if (controller.signal.aborted && !chatRequestRef.current) return;
+
+      console.error("Chat request failed:", error);
+      setChatMessages((previous) => [
+        ...previous,
+        {
+          role: "assistant",
+          content: "Sorry, having some connection issues. Try again? 😅",
+        },
+      ]);
     } finally {
+      window.clearTimeout(timeout);
+      if (chatRequestRef.current === controller) chatRequestRef.current = null;
       setIsTyping(false);
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      void sendMessage();
     }
   };
 
@@ -345,16 +419,28 @@ const Play = () => {
             )}
           </div>
           <div className="chat-input-area">
+            <label className="sr-only" htmlFor="chat-message-input">
+              Chat message
+            </label>
             <input
+              id="chat-message-input"
               type="text"
               className="chat-input"
               placeholder="Type a message..."
               value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
-              onKeyPress={handleKeyPress}
+              onChange={(event) => setChatInput(event.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={isTyping}
+              autoComplete="off"
               data-cursor="disable"
             />
-            <button className="chat-send-btn" onClick={sendMessage} data-cursor="disable">
+            <button
+              className="chat-send-btn"
+              onClick={() => void sendMessage()}
+              disabled={isTyping || !chatInput.trim()}
+              data-cursor="disable"
+              aria-label="Send chat message"
+            >
               ➤
             </button>
           </div>
@@ -392,14 +478,17 @@ const Play = () => {
                   const isCheck = game.isCheck() && piece?.type === 'k' && piece?.color === game.turn();
 
                   return (
-                    <div
+                    <button
+                      type="button"
                       key={square}
-                      className={`chess-square ${isLight ? 'light' : 'dark'} 
-                        ${isSelected ? 'selected' : ''} 
-                        ${isLastMoveSquare ? 'last-move' : ''}
-                        ${isCheck ? 'in-check' : ''}`}
+                      className={`chess-square ${isLight ? "light" : "dark"}
+                        ${isSelected ? "selected" : ""}
+                        ${isLastMoveSquare ? "last-move" : ""}
+                        ${isCheck ? "in-check" : ""}`}
                       onClick={() => handleSquareClick(square)}
                       data-cursor="disable"
+                      aria-label={`${square}${piece ? `, ${piece.color === "w" ? "white" : "black"} ${piece.type}` : ", empty"}`}
+                      aria-pressed={isSelected}
                     >
                       {/* Coordinate labels */}
                       {file === (boardFlipped ? 'h' : 'a') && (
@@ -414,9 +503,12 @@ const Play = () => {
 
                       {/* Possible move indicator */}
                       {isPossibleMove && (
-                        <div className={`move-indicator ${piece ? 'capture' : ''}`} />
+                        <span
+                          className={`move-indicator ${piece ? "capture" : ""}`}
+                          aria-hidden="true"
+                        />
                       )}
-                    </div>
+                    </button>
                   );
                 })
               ))}
